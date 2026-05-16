@@ -1,11 +1,21 @@
 import os
 import zipfile
+import json
 
 with open("userChrome.css", "r") as f:
     css_content = f.read()
 
 # Escape backticks and dollar signs if any
 css_content = css_content.replace('`', '\\`').replace('$', '\\$')
+
+# Write Manifest
+with open("src/manifest.json", "r") as f:
+    manifest = json.load(f)
+
+manifest["name"] = "O365-Addon"
+
+with open("src/manifest.json", "w") as f:
+    json.dump(manifest, f, indent=2)
 
 parent_js_content = f"""\
 "use strict";
@@ -49,17 +59,60 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
       }}
     `;
 
+    const IMPORT_STATEMENT = '@import url("o365Chrome.css");\\n';
+
     async function installUserChrome() {{
         try {{
             const chromeDir = PathUtils.join(PathUtils.profileDir, "chrome");
             await IOUtils.makeDirectory(chromeDir, {{ ignoreExisting: true }});
-            const cssPath = PathUtils.join(chromeDir, "userChrome.css");
+            
+            // Write standalone theme file
+            const o365Path = PathUtils.join(chromeDir, "o365Chrome.css");
             const encoder = new TextEncoder();
-            await IOUtils.write(cssPath, encoder.encode(USER_CHROME_CSS));
+            await IOUtils.write(o365Path, encoder.encode(USER_CHROME_CSS));
+            
+            // Smart inject into userChrome.css
+            const userChromePath = PathUtils.join(chromeDir, "userChrome.css");
+            let userCss = "";
+            if (await IOUtils.exists(userChromePath)) {{
+                userCss = await IOUtils.readUTF8(userChromePath);
+            }}
+            
+            if (!userCss.includes('url("o365Chrome.css")')) {{
+                userCss = IMPORT_STATEMENT + userCss;
+                await IOUtils.write(userChromePath, encoder.encode(userCss));
+            }}
+            
             Services.prefs.setBoolPref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-            console.log("O365-Addon: Successfully installed userChrome.css to " + cssPath);
+            console.log("O365-Addon: Successfully installed CSS.");
         }} catch (e) {{
-            console.error("O365-Addon: Failed to install userChrome.css:", e);
+            console.error("O365-Addon: Failed to install CSS:", e);
+        }}
+    }}
+
+    async function uninstallUserChrome() {{
+        try {{
+            const chromeDir = PathUtils.join(PathUtils.profileDir, "chrome");
+            
+            // Delete standalone theme file
+            const o365Path = PathUtils.join(chromeDir, "o365Chrome.css");
+            if (await IOUtils.exists(o365Path)) {{
+                await IOUtils.remove(o365Path);
+            }}
+            
+            // Remove from userChrome.css
+            const userChromePath = PathUtils.join(chromeDir, "userChrome.css");
+            if (await IOUtils.exists(userChromePath)) {{
+                let userCss = await IOUtils.readUTF8(userChromePath);
+                if (userCss.includes('url("o365Chrome.css")')) {{
+                    userCss = userCss.replace(IMPORT_STATEMENT, '');
+                    const encoder = new TextEncoder();
+                    await IOUtils.write(userChromePath, encoder.encode(userCss));
+                }}
+            }}
+            console.log("O365-Addon: Successfully uninstalled CSS.");
+        }} catch (e) {{
+            console.error("O365-Addon: Failed to uninstall CSS:", e);
         }}
     }}
 
@@ -161,7 +214,6 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
             "resource:///modules/ExtensionSupport.sys.mjs"
           );
           
-          // Auto-install userChrome.css
           await installUserChrome();
 
           const openWindows = Services.wm.getEnumerator("mail:3pane");
@@ -178,6 +230,7 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
           context.callOnClose({{
             close() {{
               ExtensionSupport.unregisterWindowListener("cardsDeleteBtn");
+              uninstallUserChrome();
             }},
           }});
         }},
