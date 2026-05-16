@@ -1,9 +1,9 @@
 {
   "manifest_version": 2,
-  "name": "Cards View Delete Button",
+  "name": "Outlook-Addon",
   "version": "1.0.2",
-  "description": "Adds a delete (trash) button to each message card in Thunderbird's Cards View.",
-  "author": "Aleš Agič",
+  "description": "Outlook style theming and a quick delete button.",
+  "author": "Ale\u0161 Agi\u010d",
   "homepage_url": "https://github.com/YOUR_USERNAME/cards-delete-btn",
   "applications": {
     "gecko": {
@@ -15,14 +15,22 @@
     "cardsDelete": {
       "schema": "api/schema.json",
       "parent": {
-        "scopes": ["addon_parent"],
+        "scopes": [
+          "addon_parent"
+        ],
         "script": "api/parent.js",
-        "paths": [["cardsDelete"]]
+        "paths": [
+          [
+            "cardsDelete"
+          ]
+        ]
       }
     }
   },
   "background": {
-    "scripts": ["background.js"]
+    "scripts": [
+      "background.js"
+    ]
   },
   "icons": {
     "48": "icon48.png",

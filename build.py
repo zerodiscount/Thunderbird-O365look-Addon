@@ -1,6 +1,18 @@
 import os
 import zipfile
+import json
 
+# Rewrite manifest.json
+with open("src/manifest.json", "r") as f:
+    manifest = json.load(f)
+
+manifest["name"] = "Outlook-Addon"
+manifest["description"] = "Outlook style theming and a quick delete button."
+
+with open("src/manifest.json", "w") as f:
+    json.dump(manifest, f, indent=2)
+
+# Rewrite parent.js to ONLY include the delete button CSS and logic
 parent_js_content = """\
 "use strict";
 
@@ -11,28 +23,6 @@ var { ExtensionCommon } = ChromeUtils.importESModule(
 this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {
   getAPI(context) {
 
-    // CSS injected into the main window (messenger.xhtml)
-    const MAIN_WINDOW_CSS = `
-      notification-message[type="warning"] {
-          --message-bar-background-color: #121212 !important;
-          --message-bar-text-color: #E0E0E0 !important;
-          border-bottom: 1px solid #2A2A2B !important;
-      }
-      notification-message[type="warning"] button {
-          background-color: #2b4c6e !important;
-          color: #E0E0E0 !important;
-          border: 1px solid #1f3954 !important;
-          border-radius: 4px !important;
-      }
-      notification-message[type="warning"] button:hover {
-          background-color: #355d87 !important;
-      }
-      notification-message[type="warning"] .notification-message-icon {
-          fill: #D4A32A !important;
-      }
-    `;
-
-    // CSS injected into the message list iframe (about:3pane)
     const CARDS_CSS = `
       .cards-delete-btn {
         position: absolute;
@@ -60,41 +50,6 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {
         opacity: 1;
         color: #cc3333;
       }
-
-      #threadTree[rows="thread-card"] .card-layout .card-container {
-          border: none !important;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
-          box-shadow: none !important;
-          background-color: transparent !important;
-          border-radius: 0px !important;
-          padding-top: 4px !important;
-          padding-bottom: 4px !important;
-      }
-      #threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .subject {
-          font-weight: 600 !important; 
-          color: #5ab0ff !important;
-      }
-      #threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .sender {
-          font-weight: 600 !important;
-          color: #ffffff !important; 
-      }
-      #threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .preview-text {
-          font-weight: normal !important;
-          color: #a0a0a0 !important; 
-      }
-      #threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .read-status {
-          display: none !important;
-      }
-      #threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .card-container {
-          border-left: 3px solid #5ab0ff !important;
-      }
-      #threadTree[rows="thread-card"] .card-layout.selected.current .card-container {
-          background-color: rgba(90, 176, 255, 0.15) !important;
-          border-left: 3px solid #5ab0ff !important;
-      }
-      #folderTree li .icon {
-          filter: grayscale(100%) opacity(70%) !important;
-      }
     `;
 
     function deleteMessage(row, innerWin) {
@@ -121,7 +76,6 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {
       btn.title = "Delete message";
       btn.setAttribute("aria-label", "Delete message");
       
-      // Use an inline SVG to guarantee rendering regardless of chrome permissions
       btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M11 2H5V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1zM2 3h12v1H2V3zm1 2h10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm3 2v5h1V7H6zm3 0v5h1V7H9z"/></svg>`;
 
       btn.addEventListener("click", (event) => {
@@ -165,14 +119,6 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {
       if (!outerWin || outerWin._cardsDeleteWatching) return;
       outerWin._cardsDeleteWatching = true;
       const doc = outerWin.document;
-
-      // Inject the Main Window CSS (Warning Banner)
-      if (!doc.getElementById("tb-outlook-theme-main-css")) {
-        const style = doc.createElement("style");
-        style.id = "tb-outlook-theme-main-css";
-        style.textContent = MAIN_WINDOW_CSS;
-        (doc.head ?? doc.documentElement).appendChild(style);
-      }
 
       function tryInject() {
         doc.querySelectorAll("browser, iframe").forEach(frame => {
@@ -229,14 +175,12 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {
 with open("src/api/parent.js", "w") as f:
     f.write(parent_js_content)
 
-print("parent.js generated successfully.")
-
-# Rebuild the ZIP
-with zipfile.ZipFile("thunderbird-outlook-theme.xpi", "w") as zipf:
+# Rebuild the ZIP into Outlook-Addon.xpi
+with zipfile.ZipFile("Outlook-Addon.xpi", "w") as zipf:
     for root, dirs, files in os.walk("src"):
         for file in files:
             file_path = os.path.join(root, file)
             arcname = os.path.relpath(file_path, "src")
             zipf.write(file_path, arcname)
 
-print("thunderbird-outlook-theme.xpi rebuilt.")
+print("Outlook-Addon.xpi built successfully.")
