@@ -13,6 +13,7 @@ parent_js_content = f"""\
 var {{ ExtensionCommon }} = ChromeUtils.importESModule("resource://gre/modules/ExtensionCommon.sys.mjs");
 var {{ IOUtils }} = ChromeUtils.importESModule("resource://gre/modules/IOUtils.sys.mjs");
 var {{ PathUtils }} = ChromeUtils.importESModule("resource://gre/modules/PathUtils.sys.mjs");
+var {{ Services }} = ChromeUtils.import("resource://gre/modules/Services.jsm");
 
 this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
   getAPI(context) {{
