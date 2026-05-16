@@ -5,98 +5,6 @@ var { ExtensionCommon } = ChromeUtils.importESModule("resource://gre/modules/Ext
 this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {
   getAPI(context) {
 
-    const USER_CHROME_CSS = `/* Thunderbird userChrome.css for Dark Warning Banner */
-
-/* Target the warning notification banner */
-notification-message[type="warning"] {
-    --message-bar-background-color: #121212 !important;
-    /* Deep dark gray / nearly black */
-    --message-bar-text-color: #E0E0E0 !important;
-    /* Soft light gray text */
-    border-bottom: 1px solid #2A2A2B !important;
-}
-
-/* Target the Preferences button specifically */
-notification-message[type="warning"] button {
-    background-color: #2b4c6e !important;
-    /* Muted blue */
-    color: #E0E0E0 !important;
-    border: 1px solid #1f3954 !important;
-    border-radius: 4px !important;
-}
-
-/* Hover state for the button */
-notification-message[type="warning"] button:hover {
-    background-color: #355d87 !important;
-    /* Slightly lighter muted blue on hover */
-}
-
-/* Tone down the warning icon to a muted gold so it matches the dark theme */
-notification-message[type="warning"] .notification-message-icon {
-    fill: #D4A32A !important;
-}
-
-/* ----------------------------------------------------------------- */
-/* OUTLOOK CARDS VIEW (MIDDLE COLUMN) & FOLDER PANE CSS              */
-/* ----------------------------------------------------------------- */
-
-/* Thin white line separators between messages and flat cards */
-#threadTree[rows="thread-card"] .card-layout .card-container {
-    border: none !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important; /* Outlook-style thin white separator */
-    box-shadow: none !important;
-    background-color: transparent !important;
-    border-radius: 0px !important; /* Flat cards like Outlook */
-    padding-top: 0px !important; /* Reduced card height */
-    padding-bottom: 0px !important; /* Reduced card height */
-}
-
-/* Adjust star icon position to align with the trash can in the reduced height card */
-#threadTree[rows="thread-card"] .card-layout .star-icon,
-#threadTree[rows="thread-card"] .card-layout .flag-icon {
-    position: absolute !important;
-    bottom: 6px !important;
-    right: 12px !important;
-}
-
-/* Unread text in Blue */
-#threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .subject {
-    font-weight: 600 !important; 
-    color: #5ab0ff !important; /* Bright light blue for unread subjects */
-}
-#threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .sender {
-    font-weight: 600 !important;
-    color: #ffffff !important; 
-}
-#threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .preview-text {
-    font-weight: normal !important;
-    color: #a0a0a0 !important; 
-}
-
-/* Outlook vertical blue unread indicator */
-#threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .read-status {
-    display: none !important;
-}
-#threadTree[rows="thread-card"] .card-layout[data-properties~="unread"] .card-container {
-    border-left: 3px solid #5ab0ff !important; /* Match the bright blue text */
-}
-
-/* Subtle background for selected items */
-#threadTree[rows="thread-card"] .card-layout.selected.current .card-container {
-    background-color: rgba(90, 176, 255, 0.15) !important;
-    border-left: 3px solid #5ab0ff !important;
-}
-
-/* ----------------------------------------------------------------- */
-/* OUTLOOK FOLDER PANE (LEFT COLUMN) CSS                             */
-/* ----------------------------------------------------------------- */
-
-/* Desaturate default yellow folder icons to match Outlook's neutral style */
-#folderTree li .icon {
-    filter: grayscale(100%) opacity(70%) !important;
-}
-`;
-
     const CARDS_CSS = `
       .cards-delete-btn {
         position: absolute;
@@ -125,63 +33,6 @@ notification-message[type="warning"] .notification-message-icon {
         color: #cc3333;
       }
     `;
-
-    const IMPORT_STATEMENT = '@import url("o365Chrome.css");\n';
-
-    async function installUserChrome() {
-        try {
-            const chromeDir = PathUtils.join(PathUtils.profileDir, "chrome");
-            await IOUtils.makeDirectory(chromeDir, { ignoreExisting: true });
-            
-            // Write standalone theme file
-            const o365Path = PathUtils.join(chromeDir, "o365Chrome.css");
-            const encoder = new TextEncoder();
-            await IOUtils.write(o365Path, encoder.encode(USER_CHROME_CSS));
-            
-            // Smart inject into userChrome.css
-            const userChromePath = PathUtils.join(chromeDir, "userChrome.css");
-            let userCss = "";
-            if (await IOUtils.exists(userChromePath)) {
-                userCss = await IOUtils.readUTF8(userChromePath);
-            }
-            
-            if (!userCss.includes('url("o365Chrome.css")')) {
-                userCss = IMPORT_STATEMENT + userCss;
-                await IOUtils.write(userChromePath, encoder.encode(userCss));
-            }
-            
-            Services.prefs.setBoolPref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-            console.log("O365-Addon: Successfully installed CSS.");
-        } catch (e) {
-            console.error("O365-Addon: Failed to install CSS:", e);
-        }
-    }
-
-    async function uninstallUserChrome() {
-        try {
-            const chromeDir = PathUtils.join(PathUtils.profileDir, "chrome");
-            
-            // Delete standalone theme file
-            const o365Path = PathUtils.join(chromeDir, "o365Chrome.css");
-            if (await IOUtils.exists(o365Path)) {
-                await IOUtils.remove(o365Path);
-            }
-            
-            // Remove from userChrome.css
-            const userChromePath = PathUtils.join(chromeDir, "userChrome.css");
-            if (await IOUtils.exists(userChromePath)) {
-                let userCss = await IOUtils.readUTF8(userChromePath);
-                if (userCss.includes('url("o365Chrome.css")')) {
-                    userCss = userCss.replace(IMPORT_STATEMENT, '');
-                    const encoder = new TextEncoder();
-                    await IOUtils.write(userChromePath, encoder.encode(userCss));
-                }
-            }
-            console.log("O365-Addon: Successfully uninstalled CSS.");
-        } catch (e) {
-            console.error("O365-Addon: Failed to uninstall CSS:", e);
-        }
-    }
 
     function deleteMessage(row, innerWin) {
       const rowIndex = typeof row.index === "number" ? row.index : -1;
@@ -281,8 +132,6 @@ notification-message[type="warning"] .notification-message-icon {
             "resource:///modules/ExtensionSupport.sys.mjs"
           );
           
-          await installUserChrome();
-
           const openWindows = Services.wm.getEnumerator("mail:3pane");
           while (openWindows.hasMoreElements()) {
             watchMailWindow(openWindows.getNext());
@@ -297,7 +146,6 @@ notification-message[type="warning"] .notification-message-icon {
           context.callOnClose({
             close() {
               ExtensionSupport.unregisterWindowListener("cardsDeleteBtn");
-              uninstallUserChrome();
             },
           });
         },
