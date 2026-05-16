@@ -20,7 +20,15 @@ It utilizes a powerful, single-click Add-on (`O365-Addon.xpi`) that automaticall
 
 *Note: You do **not** need to manually copy any CSS files. The extension will automatically generate the `userChrome.css` theme and apply the required internal configurations for you!*
 
-## Credits & Disclaimer
-* The CSS theme is a custom compilation inspired by modern Outlook 365 design principles.
+## Credits, License & Disclaimer
+* The CSS theme is a custom compilation inspired by modern design principles.
 * **Massive credit** to the open-source developers **abtecgh** and **sim32101** for the original `cards-delete-btn` extension, which provided the foundational JavaScript injection logic to get a button onto the cards view!
-* *Disclaimer: This add-on relies on experimental APIs and may require updates if Thunderbird makes major internal structural changes in the future.*
+* *Technical Disclaimer: This add-on relies on experimental APIs and may require updates if Thunderbird makes major internal structural changes in the future.*
+
+### Legal Disclaimer & Trademark Notice
+This is an independent, community-driven open-source project. **This add-on is NOT official, NOT endorsed by, and NOT connected in any way to Microsoft Corporation.** 
+
+"Outlook" and "Office 365" are registered trademarks of Microsoft Corporation. This project only seeks to provide a visual layout option for Mozilla Thunderbird users who prefer a similar aesthetic.
+
+### License
+This project is licensed under the MIT License - see the `LICENSE` file for details.
