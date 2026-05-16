@@ -2,19 +2,18 @@ import os
 import zipfile
 import json
 
-# Read the CSS
-with open("userChrome.css", "r") as f:
+# Read the CSS from the backup file
+with open("src/css/o365-theme.css", "r") as f:
     css_content = f.read()
 
 # Escape backticks and dollar signs if any
 css_content = css_content.replace('`', '\\`').replace('$', '\\$')
 
-# Write Manifest 1.0.4
+# Write Manifest 1.2.2
 with open("src/manifest.json", "r") as f:
     manifest = json.load(f)
 
-manifest["version"] = "1.0.4"
-manifest["name"] = "O365-Addon"
+manifest["version"] = "1.2.2"
 
 with open("src/manifest.json", "w") as f:
     json.dump(manifest, f, indent=2)
@@ -33,7 +32,7 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
       .cards-delete-btn {{
         position: absolute;
         right: 32px;
-        bottom: 9px; /* Adjusted from 6px to align perfectly with the star */
+        bottom: 9px;
         width: 16px;
         height: 16px;
         display: inline-flex;
@@ -50,49 +49,38 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
       .cards-delete-btn svg {{
         width: 100%;
         height: 100%;
-        fill: currentColor;
       }}
       .cards-delete-btn:hover {{
         opacity: 1;
         color: #cc3333;
       }}
-    `;
 
-    async function failsafeInstallCSS() {{
-      try {{
-        if (typeof IOUtils === "undefined" || typeof PathUtils === "undefined") {{
-          console.warn("O365-Addon: File IO APIs not globally available. Skipping auto-install.");
-          return;
-        }}
-        
-        const chromeDir = PathUtils.join(PathUtils.profileDir, "chrome");
-        await IOUtils.makeDirectory(chromeDir, {{ ignoreExisting: true }});
-        
-        const o365Path = PathUtils.join(chromeDir, "o365Chrome.css");
-        const encoder = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
-        if (!encoder) return;
-        await IOUtils.write(o365Path, encoder.encode(USER_CHROME_CSS));
-        
-        const userChromePath = PathUtils.join(chromeDir, "userChrome.css");
-        let userCss = "";
-        if (await IOUtils.exists(userChromePath)) {{
-            userCss = await IOUtils.readUTF8(userChromePath);
-        }}
-        
-        const IMPORT_STATEMENT = '@import url("o365Chrome.css");\\n';
-        if (!userCss.includes('url("o365Chrome.css")')) {{
-            userCss = IMPORT_STATEMENT + userCss;
-            await IOUtils.write(userChromePath, encoder.encode(userCss));
-        }}
-        
-        if (typeof Services !== "undefined" && Services.prefs) {{
-            Services.prefs.setBoolPref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-        }}
-        console.log("O365-Addon: CSS successfully auto-installed.");
-      }} catch (e) {{
-        console.error("O365-Addon: Auto-install failed gracefully. Error:", e);
+      .cards-junk-btn {{
+        position: absolute;
+        right: 52px;
+        bottom: 9px;
+        width: 16px;
+        height: 16px;
+        display: inline-flex;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        color: #888;
+        opacity: 0.6;
+        z-index: 100;
+        padding: 0;
+        align-items: center;
+        justify-content: center;
       }}
-    }}
+      .cards-junk-btn svg {{
+        width: 100%;
+        height: 100%;
+      }}
+      .cards-junk-btn:hover {{
+        opacity: 1;
+        color: #ff8c00; /* Bright orange flame */
+      }}
+    `;
 
     function deleteMessage(row, innerWin) {{
       const rowIndex = typeof row.index === "number" ? row.index : -1;
@@ -106,6 +94,27 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
       msgHdr.folder.deleteMessages([msgHdr], msgWindow, false, false, null, true);
     }}
 
+    function markAsJunk(row, innerWin) {{
+      try {{
+        const rowIndex = typeof row.index === "number" ? row.index : -1;
+        if (rowIndex < 0) return;
+        const view = innerWin.gDBView;
+        if (!view) return;
+        
+        // Select the specific message row first
+        view.selection.select(rowIndex);
+        
+        // Trigger Thunderbird's native Junk command to properly train the spam filter
+        if (typeof innerWin.MsgJunk === "function") {{
+            innerWin.MsgJunk();
+        }} else if (typeof innerWin.goDoCommand === "function") {{
+            innerWin.goDoCommand("cmd_markAsJunk");
+        }}
+      }} catch (e) {{
+          console.error("O365-Addon: Critical failure in markAsJunk", e);
+      }}
+    }}
+
     function attachButton(row, innerWin) {{
       if (row._cardsDeleteAttached) return;
       row._cardsDeleteAttached = true;
@@ -113,19 +122,30 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
       if (innerWin.getComputedStyle(container).position === "static") {{
         container.style.position = "relative";
       }}
-      const btn = innerWin.document.createElement("button");
-      btn.className = "cards-delete-btn";
-      btn.title = "Delete message";
-      btn.setAttribute("aria-label", "Delete message");
       
-      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M11 2H5V1a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1zM2 3h12v1H2V3zm1 2h10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zm3 2v5h1V7H6zm3 0v5h1V7H9z"/></svg>`;
-
-      btn.addEventListener("click", (event) => {{
+      const delBtn = innerWin.document.createElement("button");
+      delBtn.className = "cards-delete-btn";
+      delBtn.title = "Delete Message";
+      delBtn.setAttribute("aria-label", "Delete Message");
+      delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+      delBtn.addEventListener("click", (event) => {{
         event.stopPropagation();
         event.preventDefault();
         deleteMessage(row, innerWin);
       }}, true);
-      container.appendChild(btn);
+      container.appendChild(delBtn);
+
+      const junkBtn = innerWin.document.createElement("button");
+      junkBtn.className = "cards-junk-btn";
+      junkBtn.title = "Move to Junk";
+      junkBtn.setAttribute("aria-label", "Move to Junk");
+      junkBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"></path></svg>`;
+      junkBtn.addEventListener("click", (event) => {{
+        event.stopPropagation();
+        event.preventDefault();
+        markAsJunk(row, innerWin);
+      }}, true);
+      container.appendChild(junkBtn);
     }}
 
     function processCards(innerWin) {{
@@ -137,24 +157,56 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
         }});
     }}
 
+    function safeInjectCSS(doc, id, cssText) {{
+        try {{
+          if (!doc.getElementById(id)) {{
+            if (doc.head || doc.documentElement) {{
+              const style = doc.createElement("style");
+              style.id = id;
+              style.textContent = cssText;
+              (doc.head || doc.documentElement).appendChild(style);
+            }}
+          }}
+        }} catch (err) {{
+          console.error("O365-Addon: Failed to inject CSS " + id, err);
+        }}
+    }}
+
     function injectInto3Pane(innerWin) {{
       if (!innerWin || innerWin._cardsDeleteInjected) return;
       innerWin._cardsDeleteInjected = true;
-      const doc = innerWin.document;
-      if (!doc.getElementById("cards-delete-btn-css")) {{
-        const style = doc.createElement("style");
-        style.id = "cards-delete-btn-css";
-        style.textContent = CARDS_CSS;
-        (doc.head ?? doc.documentElement).appendChild(style);
-      }}
+      
+      safeInjectCSS(innerWin.document, "cards-delete-btn-css", CARDS_CSS);
+      
       processCards(innerWin);
       new innerWin.MutationObserver(() => processCards(innerWin))
-        .observe(doc.documentElement, {{ childList: true, subtree: true }});
+        .observe(innerWin.document.documentElement, {{ childList: true, subtree: true }});
       let ticks = 0;
       const timer = innerWin.setInterval(() => {{
         processCards(innerWin);
         if (++ticks >= 100) innerWin.clearInterval(timer);
       }}, 600);
+    }}
+
+    function injectRecursively(currentDoc) {{
+      if (!currentDoc) return;
+      
+      safeInjectCSS(currentDoc, "o365-global-theme-css", USER_CHROME_CSS);
+      
+      const href = currentDoc.location?.href || "";
+      if (href.startsWith("about:3pane")) {{
+          const innerWin = currentDoc.defaultView;
+          if (innerWin) injectInto3Pane(innerWin);
+      }}
+      
+      currentDoc.querySelectorAll("browser, iframe").forEach(frame => {{
+        try {{
+          const cw = frame.contentWindow;
+          if (cw && cw.document) {{
+              injectRecursively(cw.document);
+          }}
+        }} catch(e) {{}}
+      }});
     }}
 
     function watchMailWindow(outerWin) {{
@@ -163,14 +215,7 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
       const doc = outerWin.document;
 
       function tryInject() {{
-        doc.querySelectorAll("browser, iframe").forEach(frame => {{
-          try {{
-            const cw = frame.contentWindow;
-            if (cw?.location?.href?.startsWith("about:3pane")) {{
-              injectInto3Pane(cw);
-            }}
-          }} catch (_) {{}}
-        }});
+        injectRecursively(doc);
       }}
 
       tryInject();
@@ -191,27 +236,29 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
           const {{ ExtensionSupport }} = ChromeUtils.importESModule(
             "resource:///modules/ExtensionSupport.sys.mjs"
           );
-          
-          try {{
-            await failsafeInstallCSS();
-          }} catch (err) {{
-            console.error("O365-Addon: Failsafe wrapper failed:", err);
-          }}
 
           const openWindows = Services.wm.getEnumerator("mail:3pane");
           while (openWindows.hasMoreElements()) {{
             watchMailWindow(openWindows.getNext());
           }}
-          ExtensionSupport.registerWindowListener("cardsDeleteBtn", {{
+          
+          const messageWindows = Services.wm.getEnumerator("mail:messageWindow");
+          while (messageWindows.hasMoreElements()) {{
+            watchMailWindow(messageWindows.getNext());
+          }}
+
+          ExtensionSupport.registerWindowListener("o365ThemeListener", {{
             onLoadWindow(win) {{
-              if (win.document?.documentElement?.getAttribute("windowtype") === "mail:3pane") {{
+              const winType = win.document?.documentElement?.getAttribute("windowtype");
+              if (winType === "mail:3pane" || winType === "mail:messageWindow") {{
                 watchMailWindow(win);
               }}
             }},
           }});
+          
           context.callOnClose({{
             close() {{
-              ExtensionSupport.unregisterWindowListener("cardsDeleteBtn");
+              ExtensionSupport.unregisterWindowListener("o365ThemeListener");
             }},
           }});
         }},
@@ -231,4 +278,4 @@ with zipfile.ZipFile("O365-Addon.xpi", "w") as zipf:
             arcname = os.path.relpath(file_path, "src")
             zipf.write(file_path, arcname)
 
-print("O365-Addon.xpi version 1.0.4 built successfully.")
+print("O365-Addon.xpi version 1.2.2 built successfully.")

@@ -1,13 +1,13 @@
 {
   "manifest_version": 2,
   "name": "O365-Addon",
-  "version": "1.0.4",
+  "version": "1.2.2",
   "description": "Outlook style theming and a quick delete button.",
-  "author": "Ale\u0161 Agi\u010d",
-  "homepage_url": "https://github.com/YOUR_USERNAME/cards-delete-btn",
+  "author": "zerodiscount & Open Source Community",
+  "homepage_url": "https://github.com/zerodiscount/Thunderbird-O365look-Addon",
   "applications": {
     "gecko": {
-      "id": "o365-addon@zerodiscount.github.io",
+      "id": "o365-addon-v2@zerodiscount.github.io",
       "strict_min_version": "115.0"
     }
   },
