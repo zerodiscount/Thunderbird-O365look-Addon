@@ -1,8 +1,8 @@
-# Thunderbird Outlook Theme & Customizations
+# Thunderbird O365look Theme & Customizations
 
 This repository provides an Outlook/Office 365 inspired UI customization setup for Mozilla Thunderbird (Supernova 115+). 
 
-It utilizes a powerful, single-click Add-on (`Outlook-Addon.xpi`) that automatically generates an Outlook CSS theme and injects functional buttons into your message list.
+It utilizes a powerful, single-click Add-on (`O365-Addon.xpi`) that automatically generates an O365 CSS theme and injects functional buttons into your message list.
 
 ## Features
 
@@ -15,7 +15,7 @@ It utilizes a powerful, single-click Add-on (`Outlook-Addon.xpi`) that automatic
 
 1. In Thunderbird, navigate to **Settings > Add-ons and Themes**.
 2. Click the Gear icon ⚙️ in the top right corner and select **Install Add-on From File...**
-3. Select the `Outlook-Addon.xpi` file provided in this repository.
+3. Select the `O365-Addon.xpi` file provided in this repository.
 4. Click **Add** and restart Thunderbird to apply all changes.
 
 *Note: You do **not** need to manually copy any CSS files. The extension will automatically generate the `userChrome.css` theme and apply the required internal configurations for you!*

@@ -136,9 +136,9 @@ notification-message[type="warning"] .notification-message-icon {
             const encoder = new TextEncoder();
             await IOUtils.write(cssPath, encoder.encode(USER_CHROME_CSS));
             Services.prefs.setBoolPref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-            console.log("Outlook-Addon: Successfully installed userChrome.css to " + cssPath);
+            console.log("O365-Addon: Successfully installed userChrome.css to " + cssPath);
         } catch (e) {
-            console.error("Outlook-Addon: Failed to install userChrome.css:", e);
+            console.error("O365-Addon: Failed to install userChrome.css:", e);
         }
     }
 

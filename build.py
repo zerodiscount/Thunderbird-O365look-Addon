@@ -56,9 +56,9 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
             const encoder = new TextEncoder();
             await IOUtils.write(cssPath, encoder.encode(USER_CHROME_CSS));
             Services.prefs.setBoolPref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
-            console.log("Outlook-Addon: Successfully installed userChrome.css to " + cssPath);
+            console.log("O365-Addon: Successfully installed userChrome.css to " + cssPath);
         }} catch (e) {{
-            console.error("Outlook-Addon: Failed to install userChrome.css:", e);
+            console.error("O365-Addon: Failed to install userChrome.css:", e);
         }}
     }}
 
@@ -189,12 +189,12 @@ this.cardsDelete = class extends ExtensionCommon.ExtensionAPI {{
 with open("src/api/parent.js", "w") as f:
     f.write(parent_js_content)
 
-# Rebuild the ZIP into Outlook-Addon.xpi
-with zipfile.ZipFile("Outlook-Addon.xpi", "w") as zipf:
+# Rebuild the ZIP into O365-Addon.xpi
+with zipfile.ZipFile("O365-Addon.xpi", "w") as zipf:
     for root, dirs, files in os.walk("src"):
         for file in files:
             file_path = os.path.join(root, file)
             arcname = os.path.relpath(file_path, "src")
             zipf.write(file_path, arcname)
 
-print("Outlook-Addon.xpi built successfully.")
+print("O365-Addon.xpi built successfully.")
